@@ -1,0 +1,30 @@
+﻿Field=#~Integer~#~50|Field=Comment~String~Comment~100|Field=Description~String~Description~100|Field=Designator~String~Designator~100|Field=Footprint~String~Footprint~100|Field=LibRef~String~LibRef~100|Field=Quantity~Integer~Quantity~100|ReportField=Currency~<none>|ReportField=ProductionQuantity~1|ReportField=ProjectFileName~VG扩展板.PrjPCB|ReportField=ProjectFullPath~D:\软件资料\DXP\K60\VG扩展板\VG扩展板.PrjPCB|ReportField=Title~Bill of Materials For Project [VG扩展板.PrjPCB] (No PCB Document Selected)|ReportField=ReportTime~7:19:45|ReportField=ReportDate~2018/7/31|ReportField=ReportDateTime~2018/7/31 7:19:45|ReportField=OutputName~Bill of Materials|ReportField=OutputType~BOM_PartType|ReportField=GeneratorName~BOM|ReportField=GeneratorDescription~Bill of Materials|ReportField=VariantName~None|ReportField=TotalQuantity~45|ReportField=TotalActualPrice~0|ReportField=TotalTargetPrice~0|ReportField=VersionControl_RevNumber~|ReportField=VersionControl_ProjFolderRevNumber~|ReportField=Address1~|ReportField=Address2~|ReportField=Address3~|ReportField=Address4~|ReportField=Application_BuildNumber~|ReportField=ApprovedBy~|ReportField=Author~|ReportField=CheckedBy~|ReportField=CompanyName~|ReportField=CurrentDate~2018/7/31|ReportField=CurrentTime~7:19:42|ReportField=Date~|ReportField=DocumentFullPathAndName~D:\软件资料\DXP\K60\VG扩展板\VG扩展版.SchDoc|ReportField=DocumentName~VG扩展版.SchDoc|ReportField=DocumentNumber~|ReportField=DrawnBy~|ReportField=Engineer~|ReportField=ImagePath~|ReportField=ModifiedDate~2018/7/30|ReportField=Organization~|ReportField=ProjectName~VG扩展板.PrjPCB|ReportField=Revision~|ReportField=Rule~|ReportField=SheetNumber~|ReportField=SheetTotal~|ReportField=Time~|ReportField=Title~|ReportField=DataSourceFileName~VG扩展板.PrjPCB|ReportField=DataSourceFullPath~D:\软件资料\DXP\K60\VG扩展板\VG扩展板.PrjPCB|ReportField=PCBConfigurationName~Sources|ReportField=Item~|ReportField=ItemRevision~|ReportField=ItemAndRevision~|ReportField=ItemRevisionBase~|ReportField=ItemRevisionLevel1~|ReportField=ItemRevisionLevel2~|ReportField=ItemRevisionLevel1AndBase~|ReportField=ItemRevisionLevel2AndLevel1~
+1|AD/电磁传感器接口电路|Header, 5-Pin, Dual row|ADC|HDR2X5|Header 5X2|1
+2|Header 2|Header, 2-Pin|BAT|power1|Header 2|1
+3|蓝牙接口|Header, 4-Pin|BT|HDR1X4|Header 4|1
+4||Polarized Capacitor (Radial)|C0|rb -5|Cap Pol1|1
+5||Polarized Capacitor (Surface Mount)|C2, C5, C6|3527|Cap Pol3|3
+6|104|Capacitor (Semiconductor SIM Model)|C4, C7|0603|Cap Semi|2
+7||Typical BLUE SiC LED|D0, D1, D5V, DADJ|3.2X1.6X1.1|LED3|4
+8|1N5824|Default Diode|D4|1812_DIODE|Diode|1
+9|3.3V扩展电路|Header, 3-Pin, Dual row, Right Angle|DC3V|HDR2X3|Header 3X2H|1
+10|DJ|Header, 3-Pin|DJ|HDR1X3|Header 3|1
+11|4位薄码开关电路|DIP Switch|DSW|DIP-8|SW-DIP4|1
+12||Header, 3-Pin, Dual row|EC0|HDR2X3|Header 3X2|1
+13|mini编码器接口电路|Header, 3-Pin, Dual row|EC1|HDR2X3|Header 3X2|1
+14|GPIO扩展电路|Header, 5-Pin, Dual row|EXIF|HDR2X5|Header 5X2|1
+15||Header, 3-Pin|GHG|HDR1X3|Header 3|1
+16||Switch|K0, K1, K2|2512R|SW-PB|3
+17||Inductor|L1|CL1010|Inductor|1
+18|3.3V稳压电路|固定5V输出直流稳压芯片|LM2937|TO263-3|LM2940|1
+19|5V稳压电路|固定5V输出直流稳压芯片|LM2940|TO263-3|LM2940|1
+20|LQ_KXXP144-SYSVG||LQ_KXXP144-SYSVG|LQ_KXXP144-SYSVG|LQ_KXXP144-SYSVG|1
+21|双马达驱动|Header, 5-Pin|MT|HDR1X5|Header 5|1
+22|OLED接口|Header, 7-Pin|OLED|HDR1X7|Header 7|1
+23|OV7620摄像头接口|Header, 8-Pin, Dual row|OVCCD|HDR2X8|Header 8X2|1
+24||Resistor|R2, R4, R5, R6, R7, R8, R11, R12|J1-0603|Res3|8
+25|1K||RP1, RP2|RESPACK4_SMD|RESPACK4|2
+26|||SW|钮子开关 - duplicate|钮子开关|1
+27|线阵CCD TSL1401接口|Header, 6-Pin, Dual row|TSL|HDR2X6|Header 6X2|1
+28|AS1015||U1|SOP8L|AS1015|1
+29||Tapped Resistor|VR|3362|Res Tap|1
