@@ -1,0 +1,188 @@
+C51 COMPILER V9.01   24C64                                                                 10/15/2012 18:07:45 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE 24C64
+OBJECT MODULE PLACED IN 24C64.obj
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE AT24C64\24C64.C INCDIR(.\24L01;.\ziku;.\AT24C64;..\接收显示) DEBUG OBJECTEX
+                    -TEND PRINT(.\24C64.lst) OBJECT(24C64.obj)
+
+line level    source
+
+   1          #include"24C64.H"
+   2          #include"system.h"
+   3          /******************************************************************************
+   4          AT24C02存储与读取部分
+   5          ******************************************************************************/
+   6          void delay()
+   7          {;;}
+   8          void start1()
+   9          {
+  10   1              sda=1;
+  11   1              delay();
+  12   1              scl=1;
+  13   1              delay();
+  14   1              sda=0;
+  15   1              delay();
+  16   1      }
+  17          void stop1()
+  18          {
+  19   1              sda=0;
+  20   1              delay();
+  21   1              scl=1;
+  22   1              delay();
+  23   1              sda=1;
+  24   1              delay();
+  25   1      }
+  26          void respons()
+  27          {
+  28   1              uchar i;
+  29   1              scl=1;
+  30   1              delay();
+  31   1              while((sda==1)&(i<250))i++;
+  32   1              scl=0;
+  33   1              delay();
+  34   1      }
+  35          void main_respons()
+  36          {
+  37   1              scl=0;
+  38   1              delay();
+  39   1              sda=0;
+  40   1              delay();
+  41   1              scl=1;
+  42   1              delay();
+  43   1              scl=0;
+  44   1              delay();
+  45   1                      
+  46   1      }
+  47          void AT24C64_init()
+  48          {
+  49   1              scl=0;
+  50   1              delay();
+  51   1              sda=0;
+  52   1              delay();
+  53   1              scl=1;
+  54   1              delay();
+C51 COMPILER V9.01   24C64                                                                 10/15/2012 18:07:45 PAGE 2   
+
+  55   1      
+  56   1      }
+  57          void write_byte1(uchar date)
+  58          {
+  59   1              uchar i,temp;
+  60   1              temp=date;
+  61   1              for(i=0;i<8;i++)
+  62   1              {
+  63   2                      temp=temp<<1;
+  64   2                      scl=0;
+  65   2                      delay();
+  66   2                      sda=CY;
+  67   2                      delay();
+  68   2                      scl=1;
+  69   2                      delay();
+  70   2              }
+  71   1              scl=0;
+  72   1              delay();
+  73   1              sda=1;
+  74   1              delay();
+  75   1      }
+  76          uchar read_byte1()
+  77          {
+  78   1              uchar i,k;
+  79   1              scl=0;
+  80   1              delay();
+  81   1              sda=1;
+  82   1              delay();
+  83   1              for(i=0;i<8;i++)
+  84   1              {
+  85   2                      scl=1;
+  86   2                      delay();
+  87   2                      k=(k<<1)|sda;
+  88   2                      scl=0;
+  89   2                      delay();
+  90   2              }
+  91   1              return k;
+  92   1      }
+  93          /*void write_add(uchar address,uchar date)
+  94          {
+  95                  start1();
+  96                  write_byte1(0xa0);
+  97                  respons();
+  98                  write_byte1(address/256);
+  99                  respons();
+ 100                  write_byte1(address%256);
+ 101                  respons();
+ 102                  write_byte1(date);
+ 103                  respons();
+ 104                  stop1();
+ 105          }  */
+ 106          void page_write(uint address,uchar * num)
+ 107          {
+ 108   1              uchar i=0;
+ 109   1              start1();
+ 110   1              write_byte1(0xa0);
+ 111   1              respons();
+ 112   1              write_byte1(address/256);
+ 113   1              respons();
+ 114   1              write_byte1(address%256);
+ 115   1              respons();
+ 116   1              for(i=0;i<32;i++)
+C51 COMPILER V9.01   24C64                                                                 10/15/2012 18:07:45 PAGE 3   
+
+ 117   1              {       
+ 118   2                      write_byte1(num[i]);
+ 119   2                      respons();
+ 120   2              }
+ 121   1              stop1();
+ 122   1      }
+ 123          uchar read_add(uint address)
+ 124          {
+ 125   1              uchar date;
+ 126   1              start1();
+ 127   1              write_byte1(0xa0);
+ 128   1              respons();
+ 129   1              write_byte1(address/256);
+ 130   1              respons();
+ 131   1              write_byte1(address%256);
+ 132   1              respons();
+ 133   1              start1();
+ 134   1              write_byte1(0xa1);
+ 135   1              respons();
+ 136   1              date=read_byte1();
+ 137   1              stop1();
+ 138   1              return date;    
+ 139   1      }        
+ 140          void sequential_read(uint address,uchar length, uchar * numread)
+ 141          {
+ 142   1              uchar i;
+ 143   1              start1();
+ 144   1              write_byte1(0xa0);
+ 145   1              respons();
+ 146   1              write_byte1(address/256);
+ 147   1              respons();
+ 148   1              write_byte1(address%256);
+ 149   1              respons();
+ 150   1              start1();
+ 151   1              write_byte1(0xa1);
+ 152   1              respons();
+ 153   1              for(i=0;i<(length-1);i++)
+ 154   1              {
+ 155   2                      numread[i]=read_byte1();
+ 156   2                      main_respons();
+ 157   2              }
+ 158   1              numread[i]=read_byte1();
+ 159   1              stop1();
+ 160   1      }          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    371    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      12
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

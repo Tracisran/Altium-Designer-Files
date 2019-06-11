@@ -1,0 +1,51 @@
+C51 COMPILER V9.00   1602                                                                  09/15/2012 14:22:15 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE 1602
+OBJECT MODULE PLACED IN 1602.obj
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE 1602\1602.c INCDIR(.\24L01;.\1602;.\AT24C64;.\DS18B20;.\ziku) DEBUG OBJECTE
+                    -XTEND PRINT(.\1602.lst) OBJECT(1602.obj)
+
+line level    source
+
+   1          #include"1602.h"
+   2          void yjwrite_com(uchar com)
+   3          {
+   4   1              lcdrs=0;
+   5   1              P0=com;
+   6   1              delayms(5);
+   7   1              lcden=1;
+   8   1              delayms(5);
+   9   1              lcden=0;
+  10   1      }
+  11          void yjwrite_date(uchar date)
+  12          {
+  13   1              lcdrs=1;
+  14   1              P0=date;
+  15   1              delayms(5);
+  16   1              lcden=1;
+  17   1              delayms(5);
+  18   1              lcden=0;
+  19   1      }
+  20          void yjinit()
+  21          {
+  22   1              lcden=0;
+  23   1              yjwrite_com(0x38);              
+  24   1              yjwrite_com(0x0c);
+  25   1              yjwrite_com(0x06);
+  26   1              yjwrite_com(0x01);              //显示清0，指针清0
+  27   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     68    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,7 @@
+"STARTUP.obj",
+"接收练习.obj",
+"syste.obj",
+"24L01.obj",
+"24C64.obj" 
+TO "接收显示" 
+RAMSIZE(256) 

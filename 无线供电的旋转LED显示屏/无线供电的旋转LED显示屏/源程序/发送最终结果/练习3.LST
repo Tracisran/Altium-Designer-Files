@@ -1,0 +1,819 @@
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE 练蟔3
+OBJECT MODULE PLACED IN 练习3.OBJ
+COMPILER INVOKED BY: D:\Keil4大赛专用\C51\BIN\C51.EXE 练习3.c BROWSE INCDIR(..\练习3) DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include<STC15F2K.h>
+   2          #include <intrins.H>
+   3          #include"ziku.h"
+   4          #define uint unsigned int
+   5          #define uchar unsigned char
+   6          uchar code table[]="0123456789abcdef";
+   7          uchar ok;
+   8          uchar abc=0;                    //需要发送汉子的个数
+   9          uchar x;                                //收到返回信号标志
+  10          uchar flag_end=0;               //一次串口接收结束
+  11          uint receive_length=6;  //串口一次接收数据长度定义，默认为6个字 
+  12          uchar menu=1; 
+  13          uchar xdata ckou[256];  //最多可装8个汉字
+  14          sbit lcden=P5^4;
+  15          sbit lcdrw=P5^5;
+  16          sbit lcdrs=P4^5;
+  17          
+  18          
+  19          void delayms(uint x)
+  20          {
+  21   1              uint i,j;
+  22   1              for(i=x;i>0;i--)
+  23   1                      for(j=110;j>0;j--);
+  24   1      }
+  25          
+  26          
+  27          
+  28          
+  29          void yjwrite_com(uchar com)
+  30          {
+  31   1              lcdrs=0;
+  32   1              P0=com;
+  33   1              delayms(5);
+  34   1              lcden=1;
+  35   1              delayms(5);
+  36   1              lcden=0;
+  37   1      }
+  38          void yjwrite_date(uchar date)
+  39          {
+  40   1              lcdrs=1;
+  41   1              P0=date;
+  42   1              delayms(5);
+  43   1              lcden=1;
+  44   1              delayms(5);
+  45   1              lcden=0;
+  46   1      }
+  47          void yjinit()
+  48          {
+  49   1              lcden=0;
+  50   1              lcdrw=0;
+  51   1              yjwrite_com(0x38);              
+  52   1              yjwrite_com(0x0c);
+  53   1              yjwrite_com(0x06);
+  54   1              yjwrite_com(0x01);              //显示清0，指针清0
+  55   1      }
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 2   
+
+  56          
+  57          
+  58          
+  59          
+  60          
+  61          
+  62          
+  63          
+  64          #define TX_ADR_WIDTH   5  // 5字节宽度的发送/接收地址
+  65          #define TX_PLOAD_WIDTH 32  // 数据通道有效数据宽度
+  66          #define RX_PLOAD_WIDTH 32
+  67          sbit CE   = P2^2;  //芯片的模式控制线，在CSN为低时，CE与CONFIG寄存器共同决定状态 Chip Enable pin signal (o
+             -utput)
+  68          sbit CSN  = P2^3;  //芯片的片选线，CSN为低电平芯片工作 Slave Select pin, (output to CSN, nRF24L01)  
+  69          sbit SCK  = P2^1;  //芯片控制的时钟线（SPI时钟） Master Out, Slave In pin (output)      
+  70          sbit MOSI = P2^4;  //芯片控制数据线，串行输入 Serial Clock pin, (output)  
+  71          sbit MISO = P2^0;  //芯片控制数据线，串行输出 Master In, Slave Out pin (input)
+  72          sbit IRQ  = P3^2;  // 采用中断写时必须接到P32或P33上Interrupt signal, from nRF24L01 (input)
+  73          
+  74          // SPI(nRF24L01) commands               24L01操作命令
+  75          #define READ_REG    0x00  //读寄存器指令 Define read command to register
+  76          #define WRITE_REG   0x20  //写寄存器指令 Define write command to register
+  77          #define RD_RX_PLOAD 0x61  //读取接收数据指令 Define RX payload register address
+  78          #define WR_TX_PLOAD 0xA0  //写待发数据指令 Define TX payload register address
+  79          #define FLUSH_TX    0xE1  //冲洗发送TX FIFO指令 Define flush TX register command
+  80          #define FLUSH_RX    0xE2  //冲洗接收 FIFO指令 Define flush RX register command
+  81          #define REUSE_TX_PL 0xE3  //定义重复装载数据指令 Define reuse TX payload register command
+  82                                                            //重新使用上一包发射的有效数据，当CE=1时，数据不断的重新发射
+  83          #define NOP         0xFF  //空操作，可以用来读状态寄存器 Define No Operation, might be used to read status
+             - register
+  84          
+  85          // SPI(nRF24L01) registers(addresses)     24L01寄存器地址
+  86          #define CONFIG      0x00  //配置收发状态，CRC校验模式以及收发状态响应方式 'Config' register address
+  87          #define EN_AA       0x01  //自动应答功能设置 'Enable Auto Acknowledgment' register address
+  88          #define EN_RXADDR   0x02  //可用信道设置 'Enabled RX addresses' register address
+  89          #define SETUP_AW    0x03  //收发地址宽度设置 'Setup address width' register address
+  90          #define SETUP_RETR  0x04  //自动重发功能设置 'Setup Auto. Retrans' register address
+  91          #define RF_CH       0x05  //工作频率设置 'RF channel' register address
+  92          #define RF_SETUP    0x06  // 发射速率、功耗功能设置'RF setup' register address
+  93          #define STATUS      0x07  //状态寄存器 'Status' register address
+  94          #define OBSERVE_TX  0x08  //发送监测功能 'Observe TX' register address
+  95          #define CD          0x09  //地址检测 'Carrier Detect' register address
+  96          #define RX_ADDR_P0  0x0A  //频道0接收数据地址，最大长度为五字节 'RX address pipe0' register address
+  97          #define RX_ADDR_P1  0x0B  // 'RX address pipe1' register address
+  98          #define RX_ADDR_P2  0x0C  // 'RX address pipe2' register address
+  99          #define RX_ADDR_P3  0x0D  // 'RX address pipe3' register address
+ 100          #define RX_ADDR_P4  0x0E  // 'RX address pipe4' register address
+ 101          #define RX_ADDR_P5  0x0F  //频道5接收数据地址 'RX address pipe5' register address
+ 102          #define TX_ADDR     0x10  //发送地址寄存器 'TX address' register address
+ 103          #define RX_PW_P0    0x11  //接收频道0接收数据长度，有效数据长度1~32 'RX payload width, pipe0' register add
+             -ress
+ 104          #define RX_PW_P1    0x12  // 'RX payload width, pipe1' register address
+ 105          #define RX_PW_P2    0x13  // 'RX payload width, pipe2' register address
+ 106          #define RX_PW_P3    0x14  // 'RX payload width, pipe3' register address
+ 107          #define RX_PW_P4    0x15  // 'RX payload width, pipe4' register address
+ 108          #define RX_PW_P5    0x16  // 接收频道5接收数据长度 'RX payload width, pipe5' register address
+ 109          #define FIFO_STATUS 0x17  //FIFO栈入栈出状态寄存器设置 'FIFO Status Register' register address
+ 110          
+ 111          void init_io(void);
+ 112          uchar SPI_RW(uchar byte);
+ 113          uchar SPI_RW_Reg(uchar reg, uchar value);
+ 114          uchar SPI_Read(uchar reg);
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 3   
+
+ 115          uchar SPI_Read_Buf(uchar reg, uchar * pBuf, uchar bytes);
+ 116          uchar SPI_Write_Buf(uchar reg, uchar * pBuf, uchar bytes);
+ 117          void RX_Mode(void);
+ 118          void TX_Mode(uchar * BUF);
+ 119          uchar Check_ACK(bit clear);
+ 120          void CheckButtons();     
+ 121          
+ 122          sbit KEY1=P3^4;
+ 123          sbit KEY2=P3^5;
+ 124          sbit KEY3=P3^6;
+ 125          sbit KEY4=P3^7;
+ 126          sbit key_lock=P3^3;
+ 127          uchar code table1[]="0123456789abcdef";
+ 128          uchar length=150;
+ 129          
+ 130          
+ 131          uchar code TX_ADDRESS[5]={0x34,0x43,0x10,0x10,0x01};//定义一个静态发送地址
+ 132          uchar TxBuf[TX_PLOAD_WIDTH]={0};         // 
+ 133          uchar RxBuf[RX_PLOAD_WIDTH]={0};
+ 134          uchar sta;
+ 135          uchar MAX_RT;//重发次数溢出中断，写1清除中断，如果MAX_RT产生中断，必须清楚后系统才能进行通
+ 136          uchar RX_DR;//接收数据中断，当收到有效数据后置1，写1清除中断
+ 137          uchar  TX_DS;//数据发送完成中断，写1清除中断 
+ 138          
+ 139          
+ 140          /*MAX_RT=sta>>4&0x01;//重发次数溢出中断，写1清除中断，如果MAX_RT产生中断，必须清楚后系统才能进行通
+ 141          RX_DR=sta>>6&0x01;//接收数据中断，当收到有效数据后置1，写1清除中断
+ 142          TX_DS=sta>>5&0x01;//数据发送完成中断，写1清除中断                  
+ 143          
+ 144          
+ 145          
+ 146          
+ 147          /**************************************************
+ 148          函数: init_io()
+ 149          
+ 150          描述:
+ 151              初始化IO
+ 152          /**************************************************/
+ 153          void init_io(void)
+ 154          {
+ 155   1              CE  = 0;        // 待机
+ 156   1              CSN = 1;        // SPI禁止不工作
+ 157   1              SCK = 0;        // SPI时钟置低
+ 158   1              IRQ = 1;        // 中断复位
+ 159   1      }
+ 160          /**************************************************/
+ 161          
+ 162          /**************************************************/
+ 163          
+ 164          /**************************************************
+ 165          函数：SPI_RW()
+ 166          此处为spi的核心，是spi协议的编程
+ 167          描述：
+ 168              根据SPI协议，写一字节数据到nRF24L01，同时从nRF24L01
+ 169                  读出一字节
+ 170          /**************************************************/
+ 171          uchar SPI_RW(uchar byte)
+ 172          {
+ 173   1              uchar i;
+ 174   1              for(i=0; i<8; i++)          // 循环8次
+ 175   1              {
+ 176   2                      MOSI = (byte & 0x80);   // byte最高位输出到MOSI
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 4   
+
+ 177   2                      byte <<= 1;             // 低一位移位到最高位
+ 178   2                      SCK = 1;                // 拉高SCK，nRF24L01从MOSI读入1位数据，同时从MISO输出1位数据
+ 179   2                      byte |= MISO;           // 读MISO到byte最低位
+ 180   2                      SCK = 0;                // SCK置低
+ 181   2              }
+ 182   1          return(byte);               // 返回读出的一字节
+ 183   1      }
+ 184          /**************************************************/
+ 185          
+ 186          /**************************************************
+ 187          函数：SPI_RW_Reg()
+ 188          
+ 189          描述：
+ 190              写数据value到reg寄存器
+ 191          /**************************************************/
+ 192          uchar SPI_RW_Reg(uchar reg, uchar value)
+ 193          {
+ 194   1              uchar status;
+ 195   1              CSN = 0;                   // CSN置低，开始传输数据
+ 196   1              status = SPI_RW(reg);      // 选择寄存器，同时返回状态字
+ 197   1              SPI_RW(value);             // 然后写数据到该寄存器
+ 198   1              CSN = 1;                   // CSN拉高，结束数据传输
+ 199   1              return(status);            // 返回状态寄存器
+ 200   1      }
+ 201          /**************************************************/
+ 202          
+ 203          /**************************************************
+ 204          函数：SPI_Read()
+ 205          
+ 206          描述：
+ 207              从reg寄存器读一字节
+ 208          /**************************************************/
+ 209          uchar SPI_Read(uchar reg)
+ 210          {
+ 211   1              uchar reg_val;
+ 212   1              CSN = 0;                    // CSN置低，开始传输数据
+ 213   1              SPI_RW(reg);                // 选择寄存器
+ 214   1              reg_val = SPI_RW(0);        // 然后从该寄存器读数据READ_REG    0x00  //读寄存器指令
+ 215   1              CSN = 1;                    // CSN拉高，结束数据传输
+ 216   1              return(reg_val);            // 返回寄存器数据
+ 217   1      }
+ 218          /**************************************************/
+ 219          
+ 220          /**************************************************
+ 221          函数：SPI_Read_Buf()
+ 222          
+ 223          描述：
+ 224              从reg寄存器读出bytes个字节，通常用来读取接收通道
+ 225                  数据或接收/发送地址
+ 226          功能: 用于读数据，reg：为寄存器地址，pBuf：为待读出数据地址，uchars：读出数据的个数
+ 227          /**************************************************/
+ 228          uchar SPI_Read_Buf(uchar reg, uchar * pBuf, uchar bytes)
+ 229          {
+ 230   1              uchar status, i;
+ 231   1              CSN = 0;                    // CSN置低，开始传输数据
+ 232   1              status = SPI_RW(reg);       // 选择寄存器，同时返回状态字
+ 233   1              for(i=0; i<bytes; i++)
+ 234   1              pBuf[i] = SPI_RW(0);    // 逐个字节从nRF24L01读出
+ 235   1              CSN = 1;                    // CSN拉高，结束数据传输
+ 236   1              return(status);             // 返回状态寄存器
+ 237   1      }
+ 238          /**************************************************/
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 5   
+
+ 239          
+ 240          /**************************************************
+ 241          函数：SPI_Write_Buf()
+ 242          
+ 243          描述：
+ 244              把pBuf缓存中的数据写入到nRF24L01，通常用来写入发
+ 245                  射通道数据或接收/发送地址
+ 246          功能: 用于写数据：为寄存器地址，pBuf：为待写入数据地址，uchars：写入数据的个数
+ 247          /**************************************************/
+ 248          uchar SPI_Write_Buf(uchar reg, uchar * pBuf, uchar bytes)
+ 249          {
+ 250   1              uchar status, i;
+ 251   1              CSN = 0;                    // CSN置低，开始传输数据
+ 252   1              status = SPI_RW(reg);       // 选择寄存器，同时返回状态字
+ 253   1              for(i=0; i<bytes; i++)
+ 254   1              SPI_RW(pBuf[i]);        // 逐个字节写入nRF24L01
+ 255   1              CSN = 1;                    // CSN拉高，结束数据传输
+ 256   1              return(status);             // 返回状态寄存器
+ 257   1      }
+ 258          /**************************************************/
+ 259          
+ 260          /**************************************************
+ 261          函数：RX_Mode()
+ 262          
+ 263          描述：
+ 264              这个函数设置nRF24L01为接收模式，等待接收发送设备的数据包
+ 265          /**************************************************/
+ 266          void RX_Mode(void)
+ 267          {
+ 268   1              CE = 0;
+ 269   1              SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); 
+ 270   1               // 接收设备接收通道0使用和发送设备相同的发送地址
+ 271   1              SPI_RW_Reg(WRITE_REG + EN_AA, 0x01);               
+ 272   1              // 使能接收通道0自动应答ACK应答允许
+ 273   1              SPI_RW_Reg(WRITE_REG + EN_RXADDR, 0x01);           
+ 274   1              // 使能接收通道0
+ 275   1              SPI_RW_Reg(WRITE_REG + RF_CH, 40);                 
+ 276   1              // 选择射频通道0x40
+ 277   1              SPI_RW_Reg(WRITE_REG + RX_PW_P0, RX_PLOAD_WIDTH); 
+ 278   1               // 接收通道0选择和发送通道相同有效数据宽度
+ 279   1              SPI_RW_Reg(WRITE_REG + RF_SETUP, 0x07);            
+ 280   1              // 数据传输率1Mbps，发射功率0dBm，低噪声放大器增益
+ 281   1              SPI_RW_Reg(WRITE_REG + CONFIG, 0x0f);              
+ 282   1              // CRC使能，16位CRC校验，上电，接收模式
+ 283   1              CE = 1;        // 拉高CE启动接收设备
+ 284   1      }
+ 285          /**************************************************/
+ 286          
+ 287          /**************************************************
+ 288          函数：TX_Mode()
+ 289          
+ 290          描述：
+ 291              这个函数设置nRF24L01为发送模式，（CE=1持续至少10us），
+ 292                  130us后启动发射，数据发送结束后，发送模块自动转入接收
+ 293                  模式等待应答信号。
+ 294          /**************************************************/
+ 295          void TX_Mode(uchar * BUF)
+ 296          {
+ 297   1              CE = 0;
+ 298   1              SPI_Write_Buf(WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH);     
+ 299   1              // 写入发送地址
+ 300   1              SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH);  
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 6   
+
+ 301   1              // 为了应答接收设备，接收通道0地址和发送地址相同
+ 302   1              SPI_Write_Buf(WR_TX_PLOAD, BUF, TX_PLOAD_WIDTH);                  
+ 303   1              // 写数据包到TX FIFO
+ 304   1              SPI_RW_Reg(WRITE_REG + EN_AA, 0x01);       // 使能接收通道0自动应答
+ 305   1              SPI_RW_Reg(WRITE_REG + EN_RXADDR, 0x01);   // 使能接收通道0
+ 306   1              SPI_RW_Reg(WRITE_REG + SETUP_RETR, 0x0a);  // 自动重发延时等待250us+86us，自动重发10次
+ 307   1              SPI_RW_Reg(WRITE_REG + RF_CH, 40);         // 选择射频通道0x40
+ 308   1              SPI_RW_Reg(WRITE_REG + RF_SETUP, 0x07);    // 数据传输率1Mbps，发射功率0dBm，低噪声放大器增益
+ 309   1              SPI_RW_Reg(WRITE_REG + CONFIG, 0x0e);      // CRC使能，16位CRC校验，上电
+ 310   1              CE = 1;
+ 311   1      }
+ 312          /**************************************************/
+ 313          
+ 314          /**************************************************
+ 315          函数：Check_ACK()
+ 316          
+ 317          描述：
+ 318              检查接收设备有无接收到数据包，设定没有收到应答信
+ 319                  号是否重发
+ 320          /**************************************************/
+ 321          uchar Check_ACK(bit clear)
+ 322          {       
+ 323   1              uchar i=0;
+ 324   1              while(IRQ&&i<50)i++;
+ 325   1      
+ 326   1                                  // 返回状态寄存器
+ 327   1              MAX_RT=sta>>4&0x01;
+ 328   1              RX_DR=sta>>6&0x01;
+ 329   1              TX_DS=sta>>5&0x01;
+ 330   1              if(MAX_RT)//重发次数溢出中断，写1清除中断
+ 331   1                      if(clear)// 是否清除TX FIFO，没有清除在复位MAX_RT中断标志后重发
+ 332   1                              SPI_RW(FLUSH_TX);//TX FIFO寄存器满标志1是满，0不满
+ 333   1      
+ 334   1      
+ 335   1              SPI_RW_Reg(WRITE_REG + STATUS, sta|0x70); 
+ 336   1              // 清除TX_DS或MAX_RT中断标志，接收到数据后RX_DR,TX_DS,MAX_PT都置高为1，通过写1来清楚中断标志
+ 337   1              IRQ = 1;
+ 338   1              
+ 339   1              if(TX_DS)//数据发送完成中断，写1清除中断
+ 340   1                      return(0x00);
+ 341   1              else
+ 342   1                      return(0xff);
+ 343   1      }
+ 344          uchar key_scan()
+ 345          {
+ 346   1              uchar key=0;
+ 347   1              static uchar key_up=1;
+ 348   1              key_lock=0;
+ 349   1              if(KEY1==0&&key_up)
+ 350   1              {
+ 351   2                      delayms(10);
+ 352   2                      if(KEY1==0)
+ 353   2                      {
+ 354   3                              key_up=0;
+ 355   3                              key=1;
+ 356   3                      }
+ 357   2              }
+ 358   1              if(KEY2==0&&key_up)
+ 359   1              {
+ 360   2                      delayms(10);
+ 361   2                      if(KEY2==0)
+ 362   2                      {
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 7   
+
+ 363   3                              key_up=0;
+ 364   3                              key=2;
+ 365   3                      }
+ 366   2              }
+ 367   1              if(KEY3==0&&key_up)
+ 368   1              {
+ 369   2                      delayms(10);
+ 370   2                      if(KEY3==0)
+ 371   2                      {
+ 372   3                              key_up=0;
+ 373   3                              key=3;
+ 374   3                      }
+ 375   2              }
+ 376   1              if(KEY4==0&&key_up)
+ 377   1              {
+ 378   2                      delayms(10);
+ 379   2                      if(KEY4==0)
+ 380   2                      {
+ 381   3                              key_up=0;
+ 382   3                              key=4;
+ 383   3                      }
+ 384   2              }
+ 385   1              if(KEY1&&KEY2&&KEY3&&KEY4)key_up=1;
+ 386   1              return key;
+ 387   1      }
+ 388          void CheckButtons()
+ 389          {
+ 390   1              uchar k;
+ 391   1              static uchar add=0;             //24c64中存储位置标志
+ 392   1              static uchar up=20,down=0;
+ 393   1              k=key_scan();   
+ 394   1              if(k==4)
+ 395   1              {
+ 396   2                      menu++;
+ 397   2                      if(menu==12)menu=0;
+ 398   2              }
+ 399   1              switch(menu)
+ 400   1              {
+ 401   2                      case 0:                           //清除
+ 402   2                              yjwrite_com(0x80+0x40);
+ 403   2                              yjwrite_date('C');yjwrite_date('l');yjwrite_date('e');yjwrite_date('a');
+ 404   2                              yjwrite_date('r');yjwrite_date('.');yjwrite_date('.');yjwrite_date('.');
+ 405   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 406   2                              if(k==1)
+ 407   2                              {
+ 408   3                                      TxBuf[0]=0xAA;
+ 409   3                                      TxBuf[1]=0x55;
+ 410   3                                      TxBuf[2]=1;
+ 411   3                                      TxBuf[3]=0;
+ 412   3                                      TX_Mode(TxBuf);
+ 413   3                                      delayms(200);
+ 414   3                                      Check_ACK(1);
+ 415   3                              }
+ 416   2                              break;
+ 417   2                      case 1:                                                                   //暂停移动
+ 418   2                              yjwrite_com(0x80+0x40);
+ 419   2                              yjwrite_date('S');yjwrite_date('t');yjwrite_date('o');yjwrite_date('p');
+ 420   2                              yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');
+ 421   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 422   2                              if(k==2||k==3||k==1)
+ 423   2                              {
+ 424   3                                      TxBuf[0]=0xAA;
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 8   
+
+ 425   3                                      TxBuf[1]=0x55;
+ 426   3                                      TxBuf[2]=2;
+ 427   3                                      TxBuf[3]=0;
+ 428   3                                      TX_Mode(TxBuf);
+ 429   3                                      delayms(200);
+ 430   3                                      Check_ACK(1);   
+ 431   3                              }
+ 432   2                              break;
+ 433   2                      case 2:                                                         //字体宽度设置
+ 434   2                              yjwrite_com(0x80+0x40);
+ 435   2                              yjwrite_date('W');yjwrite_date('i');yjwrite_date('d');yjwrite_date('e');
+ 436   2                              yjwrite_date(':');yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');
+ 437   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 438   2                              TxBuf[0]=0xAA;TxBuf[1]=0x55;TxBuf[3]=0;
+ 439   2                              if(k==2)
+ 440   2                              {
+ 441   3                                      TxBuf[2]=3;
+ 442   3                                      yjwrite_com(0x80+0x40+7);
+ 443   3                                      yjwrite_date('+');
+ 444   3                                      TX_Mode(TxBuf);
+ 445   3                                      delayms(200);
+ 446   3                                      Check_ACK(1);
+ 447   3                              }
+ 448   2                              if(k==3)
+ 449   2                              {
+ 450   3                                      TxBuf[2]=4;
+ 451   3                                      yjwrite_com(0x80+0x40+7);
+ 452   3                                      yjwrite_date('-');
+ 453   3                                      TX_Mode(TxBuf);
+ 454   3                                      delayms(200);
+ 455   3                                      Check_ACK(1);
+ 456   3                              }
+ 457   2                              break;                                            
+ 458   2                      case 3:                                                            //移动速度设置
+ 459   2                              yjwrite_com(0x80+0x40);
+ 460   2                              yjwrite_date('S');yjwrite_date('p');yjwrite_date('e');yjwrite_date('e');
+ 461   2                              yjwrite_date('d');yjwrite_date(':');yjwrite_date(' ');yjwrite_date(' ');
+ 462   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 463   2                              TxBuf[0]=0xAA;TxBuf[1]=0x55;TxBuf[3]=0;
+ 464   2                              if(k==2)
+ 465   2                              {
+ 466   3                                      TxBuf[2]=5;
+ 467   3                                      yjwrite_com(0x80+0x40+7);
+ 468   3                                      yjwrite_date('+');
+ 469   3                                      TX_Mode(TxBuf);
+ 470   3                                      delayms(200);
+ 471   3                                      Check_ACK(1);
+ 472   3                              }
+ 473   2                              if(k==3)
+ 474   2                              {
+ 475   3                                      TxBuf[2]=6;
+ 476   3                                      yjwrite_com(0x80+0x40+7);
+ 477   3                                      yjwrite_date('-');
+ 478   3                                      TX_Mode(TxBuf);
+ 479   3                                      delayms(200);
+ 480   3                                      Check_ACK(1);
+ 481   3                              }
+ 482   2                              break;
+ 483   2                      case 4:         //静止显示时显示内容的开始位置设置
+ 484   2                              yjwrite_com(0x80+0x40);
+ 485   2                              yjwrite_date('S');yjwrite_date('p');yjwrite_date('o');yjwrite_date('t');
+ 486   2                              yjwrite_date('a');yjwrite_date('d');yjwrite_date('d');yjwrite_date(' ');
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 9   
+
+ 487   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 488   2                              TxBuf[0]=0xAA;TxBuf[1]=0x55;TxBuf[3]=0;
+ 489   2                              if(k==2)
+ 490   2                              {
+ 491   3                                      TxBuf[2]=7;
+ 492   3                                      yjwrite_com(0x80+0x40+7);
+ 493   3                                      yjwrite_date('+');
+ 494   3                                      TX_Mode(TxBuf);
+ 495   3                                      delayms(200);
+ 496   3                                      Check_ACK(1);
+ 497   3                              }
+ 498   2                              if(k==3)
+ 499   2                              {
+ 500   3                                      TxBuf[2]=8;
+ 501   3                                      yjwrite_com(0x80+0x40+7);
+ 502   3                                      yjwrite_date('-');
+ 503   3                                      TX_Mode(TxBuf);
+ 504   3                                      delayms(200);
+ 505   3                                      Check_ACK(1);
+ 506   3                              }
+ 507   2                              break;
+ 508   2                      case 5:                 //接收到的数据在24C64中存储位置设置
+ 509   2                              yjwrite_com(0x80+0x40);
+ 510   2                              yjwrite_date('C');yjwrite_date('6');yjwrite_date('4');yjwrite_date('a');
+ 511   2                              yjwrite_date('d');yjwrite_date('d');yjwrite_date(':');yjwrite_date(' ');
+ 512   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 513   2                              TxBuf[0]=0xAA;TxBuf[1]=0x55;
+ 514   2                              if(k==2)
+ 515   2                              {
+ 516   3                                      add++;
+ 517   3                              }
+ 518   2                              if(k==3)
+ 519   2                              {
+ 520   3                                      add--;
+ 521   3                                      if(add==-1)add=0;
+ 522   3                              }
+ 523   2                              if(k==1)
+ 524   2                              {
+ 525   3                                      TxBuf[2]=9;
+ 526   3                                      TxBuf[3]=add;
+ 527   3                                      TX_Mode(TxBuf);delayms(200);Check_ACK(1);       
+ 528   3                              }
+ 529   2                              yjwrite_com(0x80+0x40+7);
+ 530   2                              yjwrite_date('0'+add/100);yjwrite_date('0'+add/10%10);yjwrite_date('0'+add%10);
+ 531   2                              break;
+ 532   2                      case 7:                                 //动态扫描范围上限确定
+ 533   2                              yjwrite_com(0x80+0x40);
+ 534   2                              yjwrite_date('U');yjwrite_date('p');yjwrite_date(' ');yjwrite_date(' ');
+ 535   2                              yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');
+ 536   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 537   2                              TxBuf[0]=0xAA;TxBuf[1]=0x55;
+ 538   2                              if(k==2)
+ 539   2                              {
+ 540   3                                      up++;
+ 541   3                                      if(up==255)up=255;      
+ 542   3                              }
+ 543   2                              if(k==3)
+ 544   2                              {
+ 545   3                                      up--;
+ 546   3                                      if(up<=(down+6))up=down+7;
+ 547   3                              }
+ 548   2                              if(k==1)
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 10  
+
+ 549   2                              {
+ 550   3                                      TxBuf[2]=10;
+ 551   3                                      TxBuf[3]=up;
+ 552   3                                      TX_Mode(TxBuf);delayms(200);Check_ACK(1);       
+ 553   3                              }
+ 554   2                              yjwrite_com(0x80+0x40+7);
+ 555   2                              yjwrite_date('0'+up/100);yjwrite_date('0'+up/10%10);yjwrite_date('0'+up%10);
+ 556   2                              break;
+ 557   2                      case 6:                                 //动态扫描范围下限确定
+ 558   2                              yjwrite_com(0x80+0x40);
+ 559   2                              yjwrite_date('D');yjwrite_date('o');yjwrite_date('w');yjwrite_date('n');
+ 560   2                              yjwrite_date(':');yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');
+ 561   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 562   2                              TxBuf[0]=0xAA;delayms(2);TxBuf[1]=0x55;
+ 563   2                              if(k==2)
+ 564   2                              {
+ 565   3                                      down++;
+ 566   3                                      if(down>=(up-6))down=up-7;      
+ 567   3                              }
+ 568   2                              if(k==3)
+ 569   2                              {
+ 570   3                                      down--;
+ 571   3                                      if(down==-1)down=0;
+ 572   3                              }
+ 573   2                              if(k==1)
+ 574   2                              {
+ 575   3                                      TxBuf[2]=11;
+ 576   3                                      TxBuf[3]=down;
+ 577   3                                      TX_Mode(TxBuf);delayms(200);Check_ACK(1);       
+ 578   3                              }
+ 579   2                              yjwrite_com(0x80+0x40+7);
+ 580   2                              yjwrite_date('0'+down/100);yjwrite_date('0'+down/10%10);yjwrite_date('0'+down%10);
+ 581   2                              break;
+ 582   2                      case 8:         //发送的开始位置设置
+ 583   2                              yjwrite_com(0x80+0x40);
+ 584   2                              yjwrite_date('S');yjwrite_date('t');yjwrite_date('a');yjwrite_date('r');
+ 585   2                              yjwrite_date('t');yjwrite_date(':');yjwrite_date(' ');yjwrite_date(' ');
+ 586   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 587   2                              TxBuf[0]=0xAA;TxBuf[1]=0x55;
+ 588   2                              if(k==2)
+ 589   2                              {
+ 590   3                                      abc++;
+ 591   3                              }
+ 592   2                              if(k==3)
+ 593   2                              {
+ 594   3                                      abc--;
+ 595   3                                      if(abc==-1)abc=255;
+ 596   3                              }
+ 597   2                              break;
+ 598   2                      case 9:                 //发送汉子的长度设置
+ 599   2                              yjwrite_com(0x80+0x40);
+ 600   2                              yjwrite_date('L');yjwrite_date('e');yjwrite_date('n');yjwrite_date('g');
+ 601   2                              yjwrite_date('t');yjwrite_date('h');yjwrite_date(':');yjwrite_date(' ');
+ 602   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 603   2                              if(k==2)
+ 604   2                              {
+ 605   3                                      length++;
+ 606   3                              }
+ 607   2                              if(k==3)
+ 608   2                              {
+ 609   3                                      length--;
+ 610   3                                      if(length==0)length=1;
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 11  
+
+ 611   3                              }
+ 612   2                              yjwrite_com(0x80+0x40+7);
+ 613   2                              yjwrite_date('0'+length/100);yjwrite_date('0'+length/10%10);yjwrite_date('0'+length%10);
+ 614   2                              break;
+ 615   2                      case 10:
+ 616   2                              yjwrite_com(0x80+0x40);
+ 617   2                              yjwrite_date('S');yjwrite_date('e');yjwrite_date('n');yjwrite_date('d');
+ 618   2                              yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');
+ 619   2                              yjwrite_date(' ');yjwrite_date(' ');
+ 620   2                              if(k==1)
+ 621   2                              {
+ 622   3                                      ok=!ok;
+ 623   3                                      x=1;
+ 624   3                              }
+ 625   2                              break;
+ 626   2                      case 11:
+ 627   2                              yjwrite_com(0x80+0x40);
+ 628   2                              yjwrite_date('R');yjwrite_date('_');yjwrite_date('l');yjwrite_date('o');
+ 629   2                              yjwrite_date('n');yjwrite_date('g');yjwrite_date(':');yjwrite_date('_');
+ 630   2                              yjwrite_date('_');yjwrite_date(' ');
+ 631   2                              if(k==2)
+ 632   2                              {
+ 633   3                                      receive_length++;
+ 634   3                                      if(receive_length==9)receive_length=1;
+ 635   3                              }
+ 636   2                              if(k==3)
+ 637   2                              {
+ 638   3                                      receive_length--;
+ 639   3                                      if(receive_length==0)receive_length=8;
+ 640   3                              }
+ 641   2                              yjwrite_com(0x80+0x40+7);
+ 642   2                              yjwrite_date('0'+receive_length/100);
+ 643   2                              yjwrite_date('0'+receive_length/10%10);
+ 644   2                              yjwrite_date('0'+receive_length%10);
+ 645   2                              break;
+ 646   2              }
+ 647   1      }
+ 648          
+ 649          /*----------------------------
+ 650              UART1初始化
+ 651          -----------------------------*/
+ 652          void InitUART(void)
+ 653          {
+ 654   1          SCON = 0x50;                //8位可变波特率 
+ 655   1              AUXR1= AUXR1 & 0x3F; 
+ 656   1          AUXR = 0x40;                //定时器1为1T模式
+ 657   1          TMOD = 0x20;                //定时器1为模式2(8位自动重载)
+ 658   1          TL1 = 0xDC;                                 //设置波特率重装值
+ 659   1          TH1 = 0xDC;
+ 660   1          TR1 = 1;                    //定时器1开始工作
+ 661   1          ES = 1;                     //使能串口中断
+ 662   1          EA = 1;
+ 663   1      
+ 664   1      }
+ 665          
+ 666          
+ 667          
+ 668          
+ 669          
+ 670          void main()
+ 671          {
+ 672   1              init_io();              //24L01init
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 12  
+
+ 673   1              sta = SPI_Read(STATUS);   // 读状态寄存器
+ 674   1              SPI_RW_Reg(WRITE_REG + STATUS, sta|0x70);
+ 675   1              yjinit();  //1602init
+ 676   1              InitUART();
+ 677   1              EA=1;
+ 678   1              EX0=1;          //外部中断0允许
+ 679   1              IT0=1;          //下降沿触发
+ 680   1      
+ 681   1              RX_Mode();
+ 682   1              while(1)
+ 683   1              {
+ 684   2                      uchar i,j;
+ 685   2                      CheckButtons();
+ 686   2                      yjwrite_com(0x80+5);
+ 687   2                      yjwrite_date(table[abc/100]);
+ 688   2                      yjwrite_date(table[abc/10%10]);
+ 689   2                      yjwrite_date(table[abc%10]);
+ 690   2                      if(ok)
+ 691   2                      {
+ 692   3                              for(i=0;i<32;i++)
+ 693   3                              {
+ 694   4                                      TxBuf[i]=ziku1[abc*32+i];       
+ 695   4                              } 
+ 696   3                              abc++; 
+ 697   3                              TX_Mode(TxBuf); delayms(1000);
+ 698   3                          Check_ACK(1);
+ 699   3                              delayms(1000);
+ 700   3                              if(abc==length)
+ 701   3                              ok=0;
+ 702   3                              x=0;
+ 703   3                      }
+ 704   2                      RX_Mode();
+ 705   2                      yjwrite_com(0x80);
+ 706   2                      yjwrite_date(table[menu/100]);  
+ 707   2                      yjwrite_date(table[menu/10%10]);
+ 708   2                      yjwrite_date(table[menu%10]);
+ 709   2                      if(flag_end)
+ 710   2                      {
+ 711   3                              for(i=0;i<receive_length;i++)
+ 712   3                              {
+ 713   4                                      for(j=0;j<32;j++)
+ 714   4                                      {
+ 715   5                                              TxBuf[j]=ckou[j+32*i];
+ 716   5                                      }
+ 717   4                                      TX_Mode(TxBuf); delayms(1000);
+ 718   4                                  Check_ACK(1);
+ 719   4                                      delayms(1000);
+ 720   4                              }
+ 721   3                              yjwrite_com(0x80+0x40+13);
+ 722   3                              yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');yjwrite_date(' ');
+ 723   3                              flag_end=0;     
+ 724   3                              yjwrite_com(0x80+9);
+ 725   3                              yjwrite_date('0'+TxBuf[0]/16);  
+ 726   3                              yjwrite_date('0'+TxBuf[0]%16);
+ 727   3                              yjwrite_date('0'+TxBuf[1]/16);
+ 728   3                              yjwrite_date('0'+TxBuf[1]%16);
+ 729   3                              yjwrite_date('0'+TxBuf[2]/16);
+ 730   3                              yjwrite_date('0'+TxBuf[2]%16);
+ 731   3                      }
+ 732   2              }       
+ 733   1      }
+ 734          void int0()interrupt 0
+C51 COMPILER V9.01   练蟔3                                                                 10/16/2012 21:29:12 PAGE 13  
+
+ 735          {
+ 736   1              EX0=0;
+ 737   1              sta = SPI_Read(STATUS);   // 读状态寄存器
+ 738   1              SPI_RW_Reg(WRITE_REG + STATUS, sta|0x70);
+ 739   1              RX_DR=sta>>6&0x01;
+ 740   1              if(RX_DR)
+ 741   1              { 
+ 742   2                      SPI_Read_Buf(RD_RX_PLOAD, RxBuf, TX_PLOAD_WIDTH);
+ 743   2                      SPI_RW_Reg(WRITE_REG + STATUS, sta);
+ 744   2                      if(RxBuf[2]==0x55)x=1;
+ 745   2              }
+ 746   1              EX0=1;
+ 747   1      }
+ 748          /*----------------------------
+ 749          UART 中断服务程序
+ 750          -----------------------------*/
+ 751          void Uart() interrupt 4 using 1
+ 752          {
+ 753   1              static i=0;
+ 754   1          if (RI)
+ 755   1          {
+ 756   2              RI = 0;                 //清除RI位
+ 757   2              ckou[i] = SBUF;              //P0显示串口数据
+ 758   2                      i++;
+ 759   2                      if(i==receive_length*32)
+ 760   2                      {
+ 761   3                              yjwrite_com(0x80+0x40+13);
+ 762   3                              yjwrite_date('0'+receive_length/100);   
+ 763   3                              yjwrite_date('0'+receive_length/10%10);
+ 764   3                              yjwrite_date('0'+receive_length%10);
+ 765   3                              flag_end=1;
+ 766   3                              i=0;
+ 767   3                      }
+ 768   2          }
+ 769   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2523    ----
+   CONSTANT SIZE    =   4167    ----
+   XDATA SIZE       =    256    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     82      16
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

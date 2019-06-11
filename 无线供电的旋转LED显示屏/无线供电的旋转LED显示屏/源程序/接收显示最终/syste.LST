@@ -1,0 +1,30 @@
+C51 COMPILER V9.01   SYSTE                                                                 10/15/2012 18:07:45 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE SYSTE
+OBJECT MODULE PLACED IN syste.OBJ
+COMPILER INVOKED BY: D:\Keil\C51\BIN\C51.EXE syste.c INCDIR(.\24L01;.\ziku;.\AT24C64;..\½ÓÊÕÏÔÊ¾) DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include"system.h"
+   2          void delayms(uint x)
+   3          {
+   4   1              uint i,j;
+   5   1              for(i=x;i>0;i--)
+   6   1                      for(j=110;j>0;j--);
+   7   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     30    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
